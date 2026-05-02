@@ -27,7 +27,10 @@ const DashboardMainPage = async () => {
         ) : (
           // @ts-ignore
           <ProjectTable
-            projects={playgrounds || []}
+            projects={(playgrounds || []).map((p) => ({
+              ...p,
+              description: p.description ?? "",
+            }))}
             onDeleteProject={deleteProjectById}
             onUpdateProject={editProjectById}
             onDuplicateProject={duplicateProjectById}
