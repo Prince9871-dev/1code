@@ -1,4 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server"
+import Groq from "groq-sdk";
 
 interface CodeSuggestionRequest {
   fileContent: string
@@ -129,27 +130,18 @@ Generate suggestion:`
  */
 async function generateSuggestion(prompt: string): Promise<string> {
   try {
-    // Replace this with your actual AI service call
-    const response = await fetch("http://localhost:11434/api/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        model: "codellama:latest",
-        prompt,
-        stream: false,
-        options: {
-          temperature: 0.7,
-          max_tokens: 300,
-        },
-      }),
-    })
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const response = await groq.chat.completions.create({
+      model: process.env.MODEL_NAME || "llama3-8b-8192",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.7,
+      max_tokens: 300,
+    });
 
-    if (!response.ok) {
-      throw new Error(`AI service error: ${response.statusText}`)
+    let suggestion = response.choices[0]?.message?.content || "";
+    if (!suggestion) {
+      throw new Error("AI service error: Empty response");
     }
-
-    const data = await response.json()
-    let suggestion = data.response
 
     // Clean up the suggestion
     if (suggestion.includes("```")) {

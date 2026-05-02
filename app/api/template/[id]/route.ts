@@ -43,8 +43,23 @@ export async function GET(
   }
 
   try {
-    const inputPath = path.join(process.cwd(), templatePath);
+    let inputPath = path.join(process.cwd(), templatePath);
     const outputFile = path.join(process.cwd(), `output/${templateKey}.json`);
+
+    // Dynamic template resolution fallback
+    try {
+      await fs.access(inputPath);
+    } catch {
+      // Fallback 1: strip "-new" suffix
+      const fallbackPath = inputPath.replace("-new", "");
+      try {
+        await fs.access(fallbackPath);
+        inputPath = fallbackPath;
+      } catch {
+        // Fallback 2: safe default
+        inputPath = path.join(process.cwd(), "/vibecode-starters/nextjs");
+      }
+    }
 
     console.log("Input Path:", inputPath);
     console.log("Output Path:", outputFile);

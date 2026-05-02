@@ -100,29 +100,70 @@ export async function scanTemplateDirectory(
     maxFileSize: options.maxFileSize !== undefined ? options.maxFileSize : defaultOptions.maxFileSize
   };
 
-  // Validate the input path
-  if (!templatePath) {
-    throw new Error('Template path is required');
-  }
-
-  // Check if the template path exists
   try {
-    const stats = await fs.promises.stat(templatePath);
-    if (!stats.isDirectory()) {
-      throw new Error(`'${templatePath}' is not a directory`);
+    // Validate the input path
+    if (!templatePath) {
+      return { folderName: 'unknown', items: [] };
     }
+
+    let resolvedPath = templatePath;
+
+    // Check if the template path exists
+    if (!fs.existsSync(resolvedPath)) {
+      const fallback1 = resolvedPath.replace("-new", "");
+      if (fs.existsSync(fallback1)) {
+        resolvedPath = fallback1;
+      } else {
+        const fallback2 = path.join(process.cwd(), "vibecode-starters", "nextjs");
+        if (fs.existsSync(fallback2)) {
+          resolvedPath = fallback2;
+        }
+      }
+    }
+
+    let isDirectoryValidAndNonEmpty = false;
+    
+    if (fs.existsSync(resolvedPath)) {
+      const stats = await fs.promises.stat(resolvedPath);
+      if (stats.isDirectory()) {
+        const contents = await fs.promises.readdir(resolvedPath);
+        if (contents.length > 0) {
+          isDirectoryValidAndNonEmpty = true;
+        }
+      }
+    }
+
+    if (!isDirectoryValidAndNonEmpty) {
+      // Find any non-empty folder in vibecode-starters
+      const starterBase = path.join(process.cwd(), "vibecode-starters");
+      if (fs.existsSync(starterBase)) {
+        const candidates = await fs.promises.readdir(starterBase);
+        for (const dir of candidates) {
+          const fullPath = path.join(starterBase, dir);
+          const stat = await fs.promises.stat(fullPath);
+          if (stat.isDirectory()) {
+            const contents = await fs.promises.readdir(fullPath);
+            if (contents.length > 0) {
+              resolvedPath = fullPath;
+              isDirectoryValidAndNonEmpty = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (!isDirectoryValidAndNonEmpty) {
+      return { folderName: path.basename(templatePath), items: [] };
+    }
+
+    const folderName = path.basename(resolvedPath);
+    return await processDirectory(folderName, resolvedPath, mergedOptions);
   } catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-      throw new Error(`Template directory '${templatePath}' does not exist`);
-    }
-    throw error;
+    console.error('Error in scanTemplateDirectory:', error);
+    const safeFolderName = templatePath ? path.basename(templatePath) : 'unknown';
+    return { folderName: safeFolderName, items: [] };
   }
-
-  // Get the folder name from the path
-  const folderName = path.basename(templatePath);
-
-  // Process the directory and return the result
-  return processDirectory(folderName, templatePath, mergedOptions);
 }
 
 /**
