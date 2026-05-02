@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import AddNewButton from "@/features/dashboard/components/add-new-btn";
 import AddRepo from "@/features/dashboard/components/add-repo";
 
