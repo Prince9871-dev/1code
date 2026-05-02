@@ -114,6 +114,7 @@ const WebContainerPreview: React.FC<WebContainerPreviewProps> = ({
 
         // @ts-ignore
         const files = transformToWebContainerFormat(templateData);
+        console.log("AFTER TRANSFORM:", files);
 
         setLoadingState((prev) => ({
           ...prev,
@@ -127,6 +128,33 @@ const WebContainerPreview: React.FC<WebContainerPreviewProps> = ({
           terminalRef.current.writeToTerminal("📁 Mounting files to WebContainer...\r\n");
         }
         
+        const validateAndNormalizeFiles = (tree: any, parentPath = "") => {
+          for (const path in tree) {
+            const item = tree[path];
+            const fullPath = parentPath ? `${parentPath}/${path}` : path;
+            
+            if (item.file) {
+              const content = item.file.contents;
+              if (typeof content !== "string") {
+                throw new Error(`Invalid file content type at ${fullPath}`);
+              }
+              
+              if (content.includes("\uFFFD")) {
+                console.error("Corrupted file detected:", fullPath, content);
+                item.file.contents = `console.log("Recovered file: ${fullPath}")`;
+              } else {
+                item.file.contents = content.normalize("NFC");
+              }
+            } else if (item.directory) {
+              validateAndNormalizeFiles(item.directory, fullPath);
+            }
+          }
+        };
+
+        validateAndNormalizeFiles(files);
+        console.log("FILES BEFORE MOUNT:", files);
+        console.log("BEFORE MOUNT:", files);
+
         await instance.mount(files);
         
         if (terminalRef.current?.writeToTerminal) {

@@ -37,6 +37,12 @@ export const usePlayground = (id: string): UsePlaygroundReturn => {
       setPlaygroundData(data);
 
       const rawContent = data?.templateFiles?.[0]?.content;
+      console.log("DB FILES:", JSON.stringify(data.templateFiles));
+      
+      if (!data?.templateFiles || typeof data.templateFiles !== "object") {
+        throw new Error("Invalid project file structure");
+      }
+
       if (typeof rawContent === "string") {
         const parsedContent = JSON.parse(rawContent);
         setTemplateData(parsedContent);

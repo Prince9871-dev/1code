@@ -538,7 +538,10 @@ export const PlaygroundEditor = ({
 
       <Editor
         height="100%"
-        value={content}
+        value={() => {
+          console.log("EDITOR CONTENT:", content);
+          return content;
+        }()}
         onChange={(value) => onContentChange(value || "")}
         onMount={handleEditorDidMount}
         language={activeFile ? getEditorLanguage(activeFile.fileExtension || "") : "plaintext"}
